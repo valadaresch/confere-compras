@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Confere Compras</title>
-<meta name="theme-color" content="#f4f1ea">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1916" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -19,6 +21,15 @@
     --paper:#f4f1ea; --card:#fffdf8; --ink:#1d1b16; --muted:#6f6a5e; --line:#e3ddd0;
     --green:#1f7a4d; --green-soft:#e2f1e8; --red:#b93a26; --red-soft:#f8e4df; --amber:#9a6a00; --amber-soft:#f7ecd0;
     --radius:16px; --mono:'JetBrains Mono',ui-monospace,monospace;
+    --on-ink:#fff; --field:#fff; --chip:#eceae3; --veil:rgba(244,241,234,.9); --note-ink:#5d4300;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#1a1916; --card:#24231f; --ink:#f2efe7; --muted:#a8a296; --line:#3a3832;
+      --green:#3fae74; --green-soft:#1c3427; --red:#f0826c; --red-soft:#3b231e; --amber:#e0b14a; --amber-soft:#3a3020;
+      --on-ink:#1a1916; --field:#2d2b27; --chip:#33312c; --veil:rgba(26,25,22,.92); --note-ink:#f1d9a0;
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:16px}
@@ -46,12 +57,13 @@
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
   .btn{border-radius:14px;padding:14px 16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px}
   .btn svg{width:22px;height:22px;flex:none}
-  .btn.primary{background:var(--ink);color:#fff;grid-column:1/-1;min-height:64px;font-size:18px}
+  .btn.primary{background:var(--ink);color:var(--on-ink);grid-column:1/-1;min-height:64px;font-size:18px}
   .btn.primary:active{transform:scale(.99)}
   .fileb{position:relative;overflow:hidden;cursor:pointer}
   .fileover{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
   .btn.soft{background:var(--card);border:1px solid var(--line)}
   .btn.green{background:var(--green);color:#fff}
+  @media (prefers-color-scheme: dark){.btn.green{color:#0f1a14}}
   .btn.danger{color:var(--red);background:var(--red-soft)}
   .btn.ghost{background:transparent;border:1px solid var(--line)}
   .btn:disabled{opacity:.45}
@@ -63,7 +75,7 @@
   .check{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
   .check svg{width:16px;height:16px;opacity:0}
   .item.ok .check{background:var(--green);border-color:var(--green)}
-  .item.ok .check svg{opacity:1;color:#fff}
+  .item.ok .check svg{opacity:1;color:var(--card)}
   .item.ok .nm{color:var(--muted)}
   .info{flex:1;min-width:0}
   .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -87,16 +99,16 @@
   .sheet .code{font-family:var(--mono);font-size:13px;color:var(--muted)}
   .field{margin-top:14px}
   .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
-  .field input{width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:13px 14px;font-size:17px;outline:none}
+  .field input{width:100%;border:1.5px solid var(--line);background:var(--field);border-radius:12px;padding:13px 14px;font-size:17px;outline:none}
   .field input:focus{border-color:var(--ink)}
   .field input.money{font-family:var(--mono);font-size:24px;font-weight:700}
-  .note{font-size:13px;margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--amber-soft);color:#5d4300}
-  .note.info{background:#eceae3;color:var(--ink)}
-  .seg{display:grid;grid-template-columns:1fr 1fr;background:#eceae3;border-radius:12px;padding:4px}
+  .note{font-size:13px;margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--amber-soft);color:var(--note-ink)}
+  .note.info{background:var(--chip);color:var(--ink)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--chip);border-radius:12px;padding:4px}
   .seg button{padding:10px;border-radius:9px;font-weight:700;color:var(--muted)}
-  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
   .stepper{display:flex;align-items:center;gap:10px}
-  .stepper button{width:52px;height:52px;border-radius:12px;background:#eceae3;font-size:24px;font-weight:700}
+  .stepper button{width:52px;height:52px;border-radius:12px;background:var(--chip);font-size:24px;font-weight:700}
   .stepper .q{flex:1;text-align:center;font-family:var(--mono);font-size:24px;font-weight:700}
   .subtotal{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
   .subtotal .amt{font-size:22px}
@@ -135,17 +147,17 @@
   .scanBar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:16px 16px calc(22px + env(safe-area-inset-bottom));justify-content:center;flex-wrap:wrap}
   .scanBar .btn{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(6px);flex:1;min-width:30%}
   .scanBar .btn.on{background:#fff;color:var(--ink)}
-  .install{display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;margin-top:14px}
+  .install{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--on-ink);border-radius:14px;padding:12px 14px;margin-top:14px}
   .install div{flex:1;font-size:14px}
   .install b{display:block;font-size:15px}
-  .install .btn{background:#fff;color:var(--ink);min-height:42px;padding:8px 14px}
+  .install .btn{background:var(--paper);color:var(--ink);min-height:42px;padding:8px 14px}
 
   /* loading + toast */
-  .busy{position:fixed;inset:0;z-index:30;background:rgba(244,241,234,.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-weight:700}
+  .busy{position:fixed;inset:0;z-index:30;background:var(--veil);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-weight:700}
   .busy.open{display:flex}
   .spin{width:38px;height:38px;border:4px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:r .8s linear infinite}
   @keyframes r{to{transform:rotate(360deg)}}
-  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:90vw;text-align:center}
+  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--on-ink);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%)}
 </style>
 </head>
@@ -618,12 +630,25 @@ $('#btnProdutos').onclick = ()=>{
 
 /* ---------- instalação e modo offline ---------- */
 let pedidoInstalar = null;
-window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); pedidoInstalar=e; $('#instalar').hidden=false; });
+const instalado = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+if(!instalado()) $('#instalar').hidden = false;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); pedidoInstalar=e; });
 window.addEventListener('appinstalled', ()=>{ $('#instalar').hidden=true; toast('App instalado! Procure o ícone na tela inicial.'); });
+function comoInstalar(){
+  abrirSheet(`<h2>Como instalar</h2>
+    <p style="color:var(--muted);margin:6px 0 0">A instalação só funciona no <b>Chrome</b> (não dentro do Gmail, WhatsApp ou outro app).</p>
+    <div class="note info" style="margin-top:12px"><b>1.</b> Se no topo da tela aparece um <b>X</b> e um <b>⋯</b>, toque no <b>⋯</b> e escolha <b>Abrir no Chrome</b>.<br><br>
+    <b>2.</b> No Chrome, toque no menu <b>⋮</b> (três pontinhos no canto de cima) e escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.<br><br>
+    <b>3.</b> Confirme. O ícone <b>Confere</b> aparece na tela inicial.</div>
+    <div class="row"><button class="btn green" id="iOk">Entendi</button></div>`);
+  $('#iOk').onclick = fecharSheet;
+}
 $('#btnInstalar').onclick = async ()=>{
-  if(!pedidoInstalar) return;
-  pedidoInstalar.prompt(); try{ await pedidoInstalar.userChoice; }catch(e){}
-  pedidoInstalar=null; $('#instalar').hidden=true;
+  if(pedidoInstalar){
+    try{ await pedidoInstalar.prompt(); const r = await pedidoInstalar.userChoice; pedidoInstalar=null; if(r && r.outcome==='accepted'){ $('#instalar').hidden=true; return; } }
+    catch(e){ pedidoInstalar=null; }
+  }
+  comoInstalar();
 };
 if('serviceWorker' in navigator){ window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 
