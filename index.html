@@ -143,6 +143,10 @@
   .buscando{font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
   .mini{width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:r .8s linear infinite}
 
+  .gbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .mini-btn{min-height:42px;padding:8px 10px;font-size:14px;text-decoration:none;color:var(--ink)}
+  .mini-btn svg{width:18px;height:18px}
+
   /* scanner ao vivo */
   .scan{position:fixed;inset:0;z-index:25;background:#000;display:none}
   .scan.open{display:block}
@@ -411,7 +415,13 @@ function abrirItem({ ean=null, editar=null }){
       </div>
     </div>
     ${aviso?`<div class="note ${aviso.startsWith('Última')||aviso.startsWith('Produto novo')?'info':''}">${esc(aviso)}</div>`:''}
-    <div class="field"><label for="fNome">Nome do produto</label><input id="fNome" autocomplete="off" placeholder="Ex.: Arroz 5 kg" value="${esc(it.nome)}"></div>
+    <div class="field"><label for="fNome">Nome do produto</label><input id="fNome" autocomplete="off" placeholder="Ex.: Arroz 5 kg" value="${esc(it.nome)}">
+      ${it.ean && !ehBalanca(it.ean) ? `<div class="gbar">
+        <a class="btn soft mini-btn" href="https://www.google.com/search?q=${encodeURIComponent(it.ean)}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Pesquisar no Google</a>
+        <button class="btn soft mini-btn" id="fColar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>Colar nome</button>
+      </div>` : ''}</div>
     <div class="field"><label>Vendido por</label><div class="seg"><button data-u="un">Unidade</button><button data-u="kg">Quilo (kg)</button></div></div>
     <div class="field"><label for="fPreco" id="lPreco">Preço na gôndola</label><input id="fPreco" class="money" inputmode="numeric" placeholder="R$ 0,00"></div>
     <div class="field" id="boxQtd"></div>
@@ -442,6 +452,13 @@ function abrirItem({ ean=null, editar=null }){
   });
   mascaraDinheiro($('#fPreco'), ()=>it.preco, c=>{ it.preco=c; atualiza(); });
   $('#fNome').addEventListener('input', e=> it.nome=e.target.value);
+  if($('#fColar')) $('#fColar').onclick = async ()=>{
+    let txt = '';
+    try{ txt = (await navigator.clipboard.readText() || '').trim(); }catch(e){}
+    if(!txt){ $('#fNome').focus(); toast('Toque e segure no campo do nome e escolha Colar'); return; }
+    txt = txt.replace(/\s+/g,' ').slice(0,120);
+    it.nome = txt; $('#fNome').value = txt; toast('Nome colado'); $('#fPreco').focus();
+  };
   desenhaQtd(); atualiza();
   const precisaBuscar = novo && it.ean && !ehBalanca(it.ean) && (!it.nome || !it.foto) && !(doCatalogo(it.ean)||{}).buscado;
   if(precisaBuscar){
@@ -458,7 +475,7 @@ function abrirItem({ ean=null, editar=null }){
       } else {
         const chave = erros.some(x=>x.startsWith('chave:')), redeSi5 = erros.includes('rede:si5');
         const semSi5 = !CFG.si5 ? ' (dica: cadastre a chave do SI5 na engrenagem ⚙)' : '';
-        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave do SI5 recusada — confira na engrenagem ⚙':redeSi5?'O SI5 não respondeu — digite o nome uma vez':'Não encontrei nas bases — digite o nome uma vez'+semSi5}</div>`;
+        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave do SI5 recusada — confira na engrenagem ⚙':redeSi5?'O SI5 não respondeu — digite o nome uma vez':'Não encontrei nas bases — use Pesquisar no Google e copie o nome'+semSi5}</div>`;
         if(!it.nome) $('#fNome').focus();
       }
     });

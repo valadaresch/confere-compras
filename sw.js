@@ -1,5 +1,5 @@
 // Guarda o app no celular para abrir sem internet.
-const VERSAO = 'confere-v4';
+const VERSAO = 'confere-v5';
 const FOTOS = 'confere-fotos';
 const ARQUIVOS = ['./', 'index.html', 'manifest.webmanifest', 'zxing.min.js',
   'icon-192.png', 'icon-512.png', 'icon-192-maskable.png', 'icon-512-maskable.png',
