@@ -32,6 +32,7 @@
     }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:16px}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   input{font:inherit;color:inherit}
@@ -84,6 +85,19 @@
   .empty{text-align:center;padding:36px 20px;color:var(--muted)}
   .empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
   .hint{font-size:13px;color:var(--muted);margin:10px 4px}
+
+  /* cartões da lista */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 8px 12px;display:flex;flex-direction:column;gap:3px;text-align:left;width:100%}
+  .card .ph{width:100%;aspect-ratio:1/1;border-radius:12px;background:#fff;object-fit:contain;display:block;margin-bottom:6px}
+  .card .ph.vazia{display:grid;place-items:center;background:var(--chip);color:var(--muted)}
+  .card .cn{font-weight:700;font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em;padding:0 4px}
+  .card .cl{font-size:13px;color:var(--muted);font-family:var(--mono);padding:0 4px}
+  .card .ct{font-family:var(--mono);font-weight:700;font-size:18px;margin-top:4px;padding:0 4px}
+  .card .check{position:absolute;top:14px;left:14px;background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .card.ok{opacity:.6}
+  .card.ok .check{background:var(--green);border-color:var(--green)}
+  .card.ok .check svg{opacity:1;color:var(--card)}
 
   /* bottom bar */
   .bottom{position:fixed;z-index:4;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--paper) 30%);padding:24px 16px calc(16px + env(safe-area-inset-bottom))}
@@ -204,6 +218,8 @@
   <div class="install" id="instalar" hidden>
     <div><b>Instalar no celular</b>Fica com ícone na tela inicial e abre sem internet.</div>
     <button class="btn" id="btnInstalar">Instalar</button>
+    <button class="iconbtn" id="btnFecharInst" aria-label="Não mostrar mais" style="color:inherit;width:32px;height:32px;margin-right:-6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:18px;height:18px"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
 
   <div class="actions">
@@ -222,7 +238,7 @@
   </div>
 
   <div id="lista"></div>
-  <p class="hint" id="hintConf" hidden>Toque no quadradinho para marcar o item como conferido no cupom. Toque no nome para editar.</p>
+  <p class="hint" id="hintConf" hidden>Toque no quadradinho para marcar o item como conferido no cupom. Toque no produto para editar.</p>
 </div>
 
 <div class="bottom" id="bottomBar" hidden>
@@ -299,15 +315,18 @@ function render(){
     $('#lista').innerHTML = `<div class="list"><div class="empty"><b>Sua lista está vazia</b>Escaneie o código de barras do produto e digite o preço da gôndola. O total aparece aqui em cima.</div></div>`;
     return;
   }
-  $('#lista').innerHTML = '<div class="list">' + S.itens.map(it => `
-    <div class="item ${it.ok?'ok':''}" data-id="${it.id}">
+  const ordenados = [...S.itens].sort((a,b)=> a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+  const semFoto = '<div class="ph vazia"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-8 7"/></svg></div>';
+  $('#lista').innerHTML = '<div class="grid">' + ordenados.map(it => `
+    <div class="card item ${it.ok?'ok':''}" data-id="${it.id}">
       <button class="check" data-act="ok" aria-label="Conferido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button>
-      ${it.foto ? `<img class="thumb" src="${esc(it.foto)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-      <button class="info" data-act="edit" style="text-align:left">
-        <div class="nm">${esc(it.nome)}</div>
-        <div class="sub">${it.unidade==='kg' ? fmtKg(it.qtd)+' × '+fmt(it.preco)+'/kg' : it.qtd+' × '+fmt(it.preco)}</div>
+      <button data-act="edit" style="text-align:left;display:flex;flex-direction:column;gap:3px;width:100%">
+        ${it.foto ? `<img class="ph" src="${esc(it.foto)}" alt="" loading="lazy" onerror="this.outerHTML=\'${semFoto.replace(/"/g,'&quot;')}\'">` : semFoto}
+        <div class="cn">${esc(it.nome)}</div>
+        <div class="cl">Qtd: ${it.unidade==='kg' ? fmtKg(it.qtd) : it.qtd + (it.qtd===1?' unidade':' unidades')}</div>
+        <div class="cl">Unit.: ${fmt(it.preco)}${it.unidade==='kg'?'/kg':''}</div>
+        <div class="ct">${fmt(subtotal(it))}</div>
       </button>
-      <div class="amt">${fmt(subtotal(it))}</div>
     </div>`).join('') + '</div>';
 }
 $('#lista').addEventListener('click', e=>{
@@ -806,10 +825,16 @@ $('#btnProdutos').onclick = ()=>{
 
 /* ---------- instalação e modo offline ---------- */
 let pedidoInstalar = null;
-const instalado = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-if(!instalado()) $('#instalar').hidden = false;
+const modoApp = () => ['standalone','fullscreen','minimal-ui','window-controls-overlay'].some(m => matchMedia('(display-mode: '+m+')').matches) || navigator.standalone === true;
+const jaInstalou = () => { try{ return localStorage.getItem('confere_instalado')==='1'; }catch(e){ return false; } };
+const marcarInstalado = () => { try{ localStorage.setItem('confere_instalado','1'); }catch(e){} $('#instalar').hidden = true; };
+// Dentro do app instalado, o aviso nunca aparece. No navegador, some depois de instalar ou de fechar no X.
+if(modoApp()) marcarInstalado();
+else if(!jaInstalou()) $('#instalar').hidden = false;
+['standalone','fullscreen','minimal-ui'].forEach(m => { try{ matchMedia('(display-mode: '+m+')').addEventListener('change', e=>{ if(e.matches) marcarInstalado(); }); }catch(e){} });
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); pedidoInstalar=e; });
-window.addEventListener('appinstalled', ()=>{ $('#instalar').hidden=true; toast('App instalado! Procure o ícone na tela inicial.'); });
+window.addEventListener('appinstalled', ()=>{ marcarInstalado(); toast('App instalado! Procure o ícone na tela inicial.'); });
+$('#btnFecharInst').onclick = marcarInstalado;
 function comoInstalar(){
   abrirSheet(`<h2>Como instalar</h2>
     <p style="color:var(--muted);margin:6px 0 0">A instalação só funciona no <b>Chrome</b> (não dentro do Gmail, WhatsApp ou outro app).</p>
@@ -821,7 +846,7 @@ function comoInstalar(){
 }
 $('#btnInstalar').onclick = async ()=>{
   if(pedidoInstalar){
-    try{ await pedidoInstalar.prompt(); const r = await pedidoInstalar.userChoice; pedidoInstalar=null; if(r && r.outcome==='accepted'){ $('#instalar').hidden=true; return; } }
+    try{ await pedidoInstalar.prompt(); const r = await pedidoInstalar.userChoice; pedidoInstalar=null; if(r && r.outcome==='accepted'){ marcarInstalado(); return; } }
     catch(e){ pedidoInstalar=null; }
   }
   comoInstalar();
