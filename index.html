@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Confere Compras</title>
+<meta name="theme-color" content="#f4f1ea">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @font-face{font-family:Manrope;font-weight:500;font-display:swap;src:url(fonts/manrope-latin-500-normal.woff2) format('woff2')}
+  @font-face{font-family:Manrope;font-weight:600;font-display:swap;src:url(fonts/manrope-latin-600-normal.woff2) format('woff2')}
+  @font-face{font-family:Manrope;font-weight:700;font-display:swap;src:url(fonts/manrope-latin-700-normal.woff2) format('woff2')}
+  @font-face{font-family:Manrope;font-weight:800;font-display:swap;src:url(fonts/manrope-latin-800-normal.woff2) format('woff2')}
+  @font-face{font-family:'JetBrains Mono';font-weight:500;font-display:swap;src:url(fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2')}
+  @font-face{font-family:'JetBrains Mono';font-weight:700;font-display:swap;src:url(fonts/jetbrains-mono-latin-700-normal.woff2) format('woff2')}
+  :root{
+    --paper:#f4f1ea; --card:#fffdf8; --ink:#1d1b16; --muted:#6f6a5e; --line:#e3ddd0;
+    --green:#1f7a4d; --green-soft:#e2f1e8; --red:#b93a26; --red-soft:#f8e4df; --amber:#9a6a00; --amber-soft:#f7ecd0;
+    --radius:16px; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:16px}
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+  input{font:inherit;color:inherit}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px 140px}
+
+  /* header / total */
+  header{position:sticky;top:0;z-index:5;background:var(--paper);padding:14px 0 10px;border-bottom:1px dashed var(--line)}
+  .toprow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .brand{font-weight:800;letter-spacing:-.02em;font-size:15px}
+  .sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--green)} .dot.wait{background:var(--amber)}
+  .menu{display:flex;gap:4px}
+  .iconbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+  .iconbtn:active{background:var(--line)}
+  .iconbtn svg{width:22px;height:22px}
+  .total{margin-top:8px;display:flex;align-items:flex-end;justify-content:space-between}
+  .total .lbl{font-size:13px;color:var(--muted);font-weight:600}
+  .total .val{font-family:var(--mono);font-weight:700;font-size:38px;letter-spacing:-.03em;line-height:1.05}
+  .total .count{font-size:13px;color:var(--muted);text-align:right}
+
+  /* actions */
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+  .btn{border-radius:14px;padding:14px 16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px}
+  .btn svg{width:22px;height:22px;flex:none}
+  .btn.primary{background:var(--ink);color:#fff;grid-column:1/-1;min-height:64px;font-size:18px}
+  .btn.primary:active{transform:scale(.99)}
+  .fileb{position:relative;overflow:hidden;cursor:pointer}
+  .fileover{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+  .btn.soft{background:var(--card);border:1px solid var(--line)}
+  .btn.green{background:var(--green);color:#fff}
+  .btn.danger{color:var(--red);background:var(--red-soft)}
+  .btn.ghost{background:transparent;border:1px solid var(--line)}
+  .btn:disabled{opacity:.45}
+
+  /* list */
+  .list{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:0}
+  .check{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+  .check svg{width:16px;height:16px;opacity:0}
+  .item.ok .check{background:var(--green);border-color:var(--green)}
+  .item.ok .check svg{opacity:1;color:#fff}
+  .item.ok .nm{color:var(--muted)}
+  .info{flex:1;min-width:0}
+  .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+  .amt{font-family:var(--mono);font-weight:700;white-space:nowrap}
+  .empty{text-align:center;padding:36px 20px;color:var(--muted)}
+  .empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+  .hint{font-size:13px;color:var(--muted);margin:10px 4px}
+
+  /* bottom bar */
+  .bottom{position:fixed;z-index:4;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--paper) 30%);padding:24px 16px calc(16px + env(safe-area-inset-bottom))}
+  .bottom .in{max-width:560px;margin:0 auto}
+  .bottom .btn{width:100%}
+
+  /* sheets */
+  .scrim{position:fixed;inset:0;background:rgba(29,27,22,.45);z-index:20;display:none;align-items:flex-end;justify-content:center}
+  .scrim.open{display:flex}
+  .sheet{background:var(--card);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .18s ease-out}
+  @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .sheet h2{margin:2px 0 4px;font-size:20px;letter-spacing:-.01em}
+  .sheet .code{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .field{margin-top:14px}
+  .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:13px 14px;font-size:17px;outline:none}
+  .field input:focus{border-color:var(--ink)}
+  .field input.money{font-family:var(--mono);font-size:24px;font-weight:700}
+  .note{font-size:13px;margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--amber-soft);color:#5d4300}
+  .note.info{background:#eceae3;color:var(--ink)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:#eceae3;border-radius:12px;padding:4px}
+  .seg button{padding:10px;border-radius:9px;font-weight:700;color:var(--muted)}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper button{width:52px;height:52px;border-radius:12px;background:#eceae3;font-size:24px;font-weight:700}
+  .stepper .q{flex:1;text-align:center;font-family:var(--mono);font-size:24px;font-weight:700}
+  .subtotal{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
+  .subtotal .amt{font-size:22px}
+  .row{display:flex;gap:10px;margin-top:18px}
+  .row .btn{flex:1}
+
+  /* conferência */
+  .diff{margin-top:14px;border-radius:14px;padding:14px;font-weight:700;text-align:center}
+  .diff.ok{background:var(--green-soft);color:var(--green)}
+  .diff.bad{background:var(--red-soft);color:var(--red)}
+  .diff .big{font-family:var(--mono);font-size:26px;display:block;margin-top:4px}
+  .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .kv span:last-child{font-family:var(--mono);font-weight:700}
+
+  /* history / products */
+  .hist{border:1px solid var(--line);border-radius:14px;margin-top:10px;overflow:hidden}
+  .hist summary{list-style:none;padding:12px 14px;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+  .hist summary::-webkit-details-marker{display:none}
+  .hist .lines{padding:0 14px 12px;font-size:13px}
+  .hist .lines div{display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--line)}
+  .hist .lines span:last-child{font-family:var(--mono)}
+  .tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px}
+  .tag.ok{background:var(--green-soft);color:var(--green)} .tag.bad{background:var(--red-soft);color:var(--red)}
+  .prod{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .prod .info .sub{font-size:12px}
+
+  /* scanner ao vivo */
+  .scan{position:fixed;inset:0;z-index:25;background:#000;display:none}
+  .scan.open{display:block}
+  .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .frame{position:absolute;left:7%;right:7%;top:32%;height:26%;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
+  .laser{position:absolute;left:6%;right:6%;top:50%;height:2px;background:#ff4d3a;box-shadow:0 0 10px #ff4d3a;animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .scanTop{position:absolute;left:0;right:0;top:calc(18% - 10px);text-align:center;color:#fff;font-weight:700;font-size:17px;padding:0 20px}
+  .scanTop small{display:block;font-weight:500;opacity:.75;font-size:13px;margin-top:4px}
+  .scanBar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:16px 16px calc(22px + env(safe-area-inset-bottom));justify-content:center;flex-wrap:wrap}
+  .scanBar .btn{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(6px);flex:1;min-width:30%}
+  .scanBar .btn.on{background:#fff;color:var(--ink)}
+  .install{display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;margin-top:14px}
+  .install div{flex:1;font-size:14px}
+  .install b{display:block;font-size:15px}
+  .install .btn{background:#fff;color:var(--ink);min-height:42px;padding:8px 14px}
+
+  /* loading + toast */
+  .busy{position:fixed;inset:0;z-index:30;background:rgba(244,241,234,.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-weight:700}
+  .busy.open{display:flex}
+  .spin{width:38px;height:38px;border:4px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:r .8s linear infinite}
+  @keyframes r{to{transform:rotate(360deg)}}
+  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="toprow">
+      <div>
+        <div class="brand">Confere Compras</div>
+        <div class="sync"><span class="dot ok" id="syncDot"></span><span id="syncTxt">Salvo no celular · funciona sem internet</span></div>
+      </div>
+      <div class="menu">
+        <button class="iconbtn" id="btnProdutos" aria-label="Produtos salvos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        </button>
+        <button class="iconbtn" id="btnHistorico" aria-label="Histórico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="total">
+      <div>
+        <div class="lbl">Total da compra</div>
+        <div class="val" id="total">R$ 0,00</div>
+      </div>
+      <div class="count" id="count">0 itens</div>
+    </div>
+  </header>
+  <div class="install" id="instalar" hidden>
+    <div><b>Instalar no celular</b>Fica com ícone na tela inicial e abre sem internet.</div>
+    <button class="btn" id="btnInstalar">Instalar</button>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="btnScan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8"/></svg>
+      Escanear código de barras
+    </button>
+    <button class="btn soft" id="btnDigitar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+      Digitar código
+    </button>
+    <button class="btn soft" id="btnManual">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Item sem código
+    </button>
+  </div>
+
+  <div id="lista"></div>
+  <p class="hint" id="hintConf" hidden>Toque no quadradinho para marcar o item como conferido no cupom. Toque no nome para editar.</p>
+</div>
+
+<div class="bottom" id="bottomBar" hidden>
+  <div class="in"><button class="btn green" id="btnConferir">Conferir com o cupom do caixa</button></div>
+</div>
+
+
+<input type="file" id="foto" accept="image/*" capture="environment" hidden>
+<div class="scan" id="scan">
+  <video id="vid" playsinline muted autoplay></video>
+  <div class="scanTop">Aponte para o código de barras<small>Deixe as barras dentro do quadro, na horizontal</small></div>
+  <div class="frame"><div class="laser"></div></div>
+  <div class="scanBar">
+    <button class="btn" id="scX">Cancelar</button>
+    <button class="btn" id="scLuz" hidden>Lanterna</button>
+    <button class="btn" id="scDig">Digitar número</button>
+  </div>
+</div>
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="busy" id="busy"><div class="spin"></div><div id="busyTxt">Lendo o código…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const fmt = c => 'R$ ' + (c/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtKg = q => q.toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3}) + ' kg';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const subtotal = it => Math.round(it.preco * it.qtd);
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem('confere_'+k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem('confere_'+k, JSON.stringify(v)); }catch(e){} }
+function eanValido(c){
+  if(!/^\d{8}$|^\d{12,14}$/.test(c)) return false;
+  const d=c.split('').map(Number), chk=d.pop(); let s=0;
+  d.reverse().forEach((n,i)=> s += n*(i%2===0?3:1));
+  return (10 - s%10)%10 === chk;
+}
+const ehBalanca = c => /^2\d{12}$/.test(c);   // etiqueta de balança do próprio mercado
+
+/* ---------- estado ---------- */
+function normEstado(s){ s = s && typeof s==='object' ? s : {}; return { itens:Array.isArray(s.itens)?s.itens:[], historico:Array.isArray(s.historico)?s.historico:[], atualizado:s.atualizado||0 }; }
+function normCat(c){ c = c && typeof c==='object' ? c : {}; return { produtos: c.produtos && typeof c.produtos==='object' ? c.produtos : {}, atualizado:c.atualizado||0 }; }
+let S = normEstado(lsGet('estado'));
+let C = normCat(lsGet('catalogo'));
+
+/* ---------- salvar no celular ---------- */
+function persist(w){ const o = w==='estado'?S:C; o.atualizado = Date.now(); lsSet(w,o); }
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+/* ---------- catálogo ---------- */
+function chaveCat(ean){ return ean ? (ehBalanca(ean) ? 'b'+ean.slice(1,6) : ean) : null; }
+function doCatalogo(ean){ const k=chaveCat(ean); const p=k && C.produtos[k]; return p && !p.apagado ? p : null; }
+function salvarNoCatalogo(it){
+  const k=chaveCat(it.ean); if(!k) return;
+  const p = { nome:it.nome, unidade:it.unidade, visto:Date.now() };
+  if(!ehBalanca(it.ean)) p.preco = it.preco;
+  C.produtos[k]=p; persist('catalogo');
+}
+
+/* ---------- render ---------- */
+function render(){
+  const total = S.itens.reduce((s,it)=>s+subtotal(it),0);
+  $('#total').textContent = fmt(total);
+  const n = S.itens.length;
+  const un = S.itens.reduce((s,it)=> s + (it.unidade==='kg'?1:it.qtd),0);
+  $('#count').innerHTML = n ? `${n} ${n===1?'item':'itens'}<br>${un} ${un===1?'volume':'volumes'}` : 'lista vazia';
+  $('#bottomBar').hidden = !n; $('#hintConf').hidden = !n;
+  if(!n){
+    $('#lista').innerHTML = `<div class="list"><div class="empty"><b>Sua lista está vazia</b>Escaneie o código de barras do produto e digite o preço da gôndola. O total aparece aqui em cima.</div></div>`;
+    return;
+  }
+  $('#lista').innerHTML = '<div class="list">' + S.itens.map(it => `
+    <div class="item ${it.ok?'ok':''}" data-id="${it.id}">
+      <button class="check" data-act="ok" aria-label="Conferido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button>
+      <button class="info" data-act="edit" style="text-align:left">
+        <div class="nm">${esc(it.nome)}</div>
+        <div class="sub">${it.unidade==='kg' ? fmtKg(it.qtd)+' × '+fmt(it.preco)+'/kg' : it.qtd+' × '+fmt(it.preco)}</div>
+      </button>
+      <div class="amt">${fmt(subtotal(it))}</div>
+    </div>`).join('') + '</div>';
+}
+$('#lista').addEventListener('click', e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const it = S.itens.find(x=>x.id===b.closest('.item').dataset.id); if(!it) return;
+  if(b.dataset.act==='ok'){ it.ok=!it.ok; persist('estado'); render(); }
+  else abrirItem({ editar: it });
+});
+
+/* ---------- sheets ---------- */
+const sheetAberta = () => $('#scrim').classList.contains('open');
+function abrirSheet(html){ $('#sheet').innerHTML=html; $('#scrim').classList.add('open'); }
+function fecharSheet(){ $('#scrim').classList.remove('open'); $('#sheet').innerHTML=''; }
+$('#scrim').addEventListener('click', e=>{ if(e.target.id==='scrim') fecharSheet(); });
+function confirmar(titulo, texto, ok='Confirmar', perigo=false){
+  return new Promise(res=>{
+    abrirSheet(`<h2>${esc(titulo)}</h2><p style="color:var(--muted);margin:6px 0 0">${esc(texto)}</p>
+      <div class="row"><button class="btn ghost" id="cNo">Cancelar</button><button class="btn ${perigo?'danger':'green'}" id="cOk">${esc(ok)}</button></div>`);
+    $('#cNo').onclick=()=>{fecharSheet();res(false)}; $('#cOk').onclick=()=>{fecharSheet();res(true)};
+  });
+}
+function mascaraDinheiro(inp, get, set){
+  inp.value = get() ? fmt(get()) : '';
+  inp.addEventListener('input', ()=>{
+    const dig = inp.value.replace(/\D/g,'').slice(-9);
+    const c = parseInt(dig||'0',10); set(c);
+    inp.value = c ? fmt(c) : '';
+  });
+}
+
+/* ---------- item (adicionar / editar) ---------- */
+function abrirItem({ ean=null, editar=null }){
+  let it, novo = !editar, aviso='';
+  if(editar){ it = clone(editar); }
+  else{
+    const ja = ean && !ehBalanca(ean) && S.itens.find(x=>x.ean===ean);
+    if(ja){ it = clone(ja); novo=false; if(it.unidade==='un'){ it.qtd += 1; aviso=`Este produto já estava na lista. Quantidade aumentada para ${it.qtd} — confirme abaixo.`; } else aviso='Este produto já está na lista. Ajuste o peso se precisar.'; }
+    else{
+      const cat = doCatalogo(ean);
+      it = { id:uid(), ean, nome:cat?.nome||'', preco:cat?.preco||0, qtd:1, unidade:cat?.unidade||'un', ok:false };
+      if(ean && ehBalanca(ean)){
+        const v = parseInt(ean.slice(7,12),10);
+        if(v>0){ it.preco=v; it.unidade='un'; it.qtd=1; aviso='Etiqueta de balança: o valor foi lido do próprio código. Confira com o valor impresso na etiqueta.'; }
+      } else if(cat?.preco){ aviso = `Última vez você anotou ${fmt(cat.preco)}${cat.unidade==='kg'?'/kg':''}. Confira se o preço da gôndola mudou.`; }
+      if(ean && !ehBalanca(ean) && !cat) aviso = 'Produto novo: digite o nome uma vez e o app lembra nas próximas compras.';
+    }
+  }
+  const original = !novo ? S.itens.find(x=>x.id===it.id) : null;
+  abrirSheet(`
+    <h2>${novo?'Adicionar produto':'Editar produto'}</h2>
+    <div class="code">${it.ean ? 'Código ' + esc(it.ean) : 'Item sem código de barras'}</div>
+    ${aviso?`<div class="note ${aviso.startsWith('Última')||aviso.startsWith('Produto novo')?'info':''}">${esc(aviso)}</div>`:''}
+    <div class="field"><label for="fNome">Nome do produto</label><input id="fNome" autocomplete="off" placeholder="Ex.: Arroz 5 kg" value="${esc(it.nome)}"></div>
+    <div class="field"><label>Vendido por</label><div class="seg"><button data-u="un">Unidade</button><button data-u="kg">Quilo (kg)</button></div></div>
+    <div class="field"><label for="fPreco" id="lPreco">Preço na gôndola</label><input id="fPreco" class="money" inputmode="numeric" placeholder="R$ 0,00"></div>
+    <div class="field" id="boxQtd"></div>
+    <div class="subtotal"><span style="font-weight:700">Subtotal</span><span class="amt" id="fSub"></span></div>
+    <div class="row">
+      ${novo ? '<button class="btn ghost" id="fCancel">Cancelar</button>' : '<button class="btn danger" id="fDel">Remover</button>'}
+      <button class="btn green" id="fOk">${novo?'Adicionar':'Salvar'}</button>
+    </div>`);
+  const atualiza = () => {
+    document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.u===it.unidade));
+    $('#lPreco').textContent = it.unidade==='kg' ? 'Preço do quilo na gôndola' : 'Preço na gôndola';
+    $('#fSub').textContent = fmt(subtotal(it));
+  };
+  const desenhaQtd = () => {
+    if(it.unidade==='un'){
+      $('#boxQtd').innerHTML = `<label>Quantidade</label><div class="stepper"><button id="qMenos">−</button><div class="q" id="qVal">${it.qtd}</div><button id="qMais">+</button></div>`;
+      $('#qMenos').onclick=()=>{ if(it.qtd>1){it.qtd--; $('#qVal').textContent=it.qtd; atualiza();} };
+      $('#qMais').onclick=()=>{ it.qtd++; $('#qVal').textContent=it.qtd; atualiza(); };
+    } else {
+      $('#boxQtd').innerHTML = `<label for="qKg">Peso (kg) — veja na etiqueta da balança</label><input id="qKg" inputmode="decimal" placeholder="0,000" value="${it.qtd && it.qtd!==1 ? String(it.qtd).replace('.',',') : ''}">`;
+      $('#qKg').addEventListener('input', e=>{ const v=parseFloat(e.target.value.replace(',','.')); it.qtd = v>0 ? v : 0; atualiza(); });
+    }
+  };
+  document.querySelectorAll('.seg button').forEach(b=> b.onclick=()=>{
+    if(it.unidade===b.dataset.u) return;
+    it.unidade=b.dataset.u; it.qtd = it.unidade==='un' ? Math.max(1,Math.round(it.qtd)||1) : 0;
+    desenhaQtd(); atualiza();
+  });
+  mascaraDinheiro($('#fPreco'), ()=>it.preco, c=>{ it.preco=c; atualiza(); });
+  $('#fNome').addEventListener('input', e=> it.nome=e.target.value);
+  desenhaQtd(); atualiza();
+  if(!it.nome) setTimeout(()=>$('#fNome')?.focus(),250); else if(!it.preco) setTimeout(()=>$('#fPreco')?.focus(),250);
+
+  $('#fOk').onclick = ()=>{
+    it.nome = it.nome.trim();
+    if(!it.nome){ toast('Digite o nome do produto'); $('#fNome').focus(); return; }
+    if(!it.preco){ toast('Digite o preço da gôndola'); $('#fPreco').focus(); return; }
+    if(!(it.qtd>0)){ toast('Digite o peso em kg'); $('#qKg')?.focus(); return; }
+    if(original){ Object.assign(original, it); } else S.itens.unshift(it);
+    persist('estado'); salvarNoCatalogo(it); fecharSheet(); render();
+    toast(novo ? 'Adicionado: ' + it.nome : 'Atualizado');
+  };
+  $('#fCancel') && ($('#fCancel').onclick = fecharSheet);
+  $('#fDel') && ($('#fDel').onclick = async ()=>{
+    if(await confirmar('Remover item?', it.nome, 'Remover', true)){
+      S.itens = S.itens.filter(x=>x.id!==it.id); persist('estado'); render(); toast('Item removido');
+    }
+  });
+}
+
+/* ---------- leitura do código de barras pela foto ---------- */
+let zxingP;
+function carregarZXing(){
+  if(window.ZXing) return Promise.resolve();
+  return zxingP ||= new Promise((ok,err)=>{
+    const s=document.createElement('script');
+    s.src='zxing.min.js';
+    s.onload=ok; s.onerror=()=>{ zxingP=null; err(); }; document.head.appendChild(s);
+  });
+}
+function canvasDe(img, maxLado, rot=0, corte=1){
+  const sw = img.width*corte, sh = img.height*corte, sx=(img.width-sw)/2, sy=(img.height-sh)/2;
+  const k = Math.min(1, maxLado/Math.max(sw,sh));
+  const w = Math.round(sw*k), h = Math.round(sh*k);
+  const c = document.createElement('canvas');
+  c.width = rot ? h : w; c.height = rot ? w : h;
+  const g = c.getContext('2d', { willReadFrequently:true });
+  if(rot){ g.translate(c.width/2,c.height/2); g.rotate(Math.PI/2); g.drawImage(img,sx,sy,sw,sh,-w/2,-h/2,w,h); }
+  else g.drawImage(img,sx,sy,sw,sh,0,0,w,h);
+  return c;
+}
+async function carregarImagem(file){
+  if(window.createImageBitmap){ try{ return await createImageBitmap(file); }catch(e){} }
+  return await new Promise((ok,err)=>{ const u=URL.createObjectURL(file), i=new Image(); i.onload=()=>ok(i); i.onerror=err; i.src=u; });
+}
+async function lerCodigo(file){
+  const img = await carregarImagem(file);
+  if('BarcodeDetector' in window){
+    try{
+      const d = new BarcodeDetector({ formats:['ean_13','ean_8','upc_a','upc_e','code_128','itf'] });
+      const r = await d.detect(img); if(r.length) return r[0].rawValue;
+    }catch(e){}
+  }
+  await carregarZXing();
+  const ler = zxingLeitor(true);
+  const tentativas = [[1200,0,1],[1200,0,.6],[800,0,1],[1800,0,1],[1200,1,1],[800,1,.6],[600,0,.5]];
+  for(const [lado,rot,corte] of tentativas){
+    const c = canvasDe(img, lado, rot, corte);
+    const r = ler(c); if(r) return r;
+    await new Promise(r=>setTimeout(r,0));
+  }
+  return null;
+}
+function zxingLeitor(tryHarder){
+  const Z = window.ZXing, F = Z.BarcodeFormat, hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.ITF]);
+  if(tryHarder) hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  const r = new Z.MultiFormatReader(); r.setHints(hints);
+  return canvas => { try{ return r.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(canvas))), hints).getText(); }catch(e){ r.reset && r.reset(); return null; } };
+}
+let bipCtx;
+function bip(){
+  try{ navigator.vibrate && navigator.vibrate(70); }catch(e){}
+  try{
+    bipCtx ||= new (window.AudioContext||window.webkitAudioContext)();
+    const o=bipCtx.createOscillator(), g=bipCtx.createGain();
+    o.frequency.value=1750; g.gain.value=.12; o.connect(g); g.connect(bipCtx.destination);
+    o.start(); o.stop(bipCtx.currentTime+.09);
+  }catch(e){}
+}
+const scan = { stream:null, timer:null, det:null, ler:null, luz:false };
+async function abrirScanner(){
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ $('#foto').click(); return; }
+  try{ bipCtx ||= new (window.AudioContext||window.webkitAudioContext)(); bipCtx.resume(); }catch(e){}
+  $('#scan').classList.add('open');
+  try{
+    scan.stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} } });
+  }catch(e){
+    fecharScanner();
+    abrirSheet(`<h2>Sem acesso à câmera</h2>
+      <p style="color:var(--muted);margin:6px 0 0">O Android bloqueou a câmera para o app. Para liberar: toque no cadeado ao lado do endereço (ou em Configurações do app &gt; Permissões) e permita <b>Câmera</b>. Depois tente de novo.</p>
+      <div class="row"><button class="btn ghost" id="eDig">Digitar número</button><button class="btn green" id="eFoto">Usar foto</button></div>`);
+    $('#eDig').onclick=()=>abrirDigitar(); $('#eFoto').onclick=()=>{ fecharSheet(); $('#foto').click(); };
+    return;
+  }
+  const v = $('#vid'); v.srcObject = scan.stream;
+  try{ await v.play(); }catch(e){}
+  const track = scan.stream.getVideoTracks()[0];
+  try{ const caps = track.getCapabilities ? track.getCapabilities() : {}; $('#scLuz').hidden = !caps.torch;
+       if(caps.focusMode && caps.focusMode.includes('continuous')) track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }catch(e){}
+  if(!scan.det && !scan.ler && 'BarcodeDetector' in window){
+    try{
+      const tem = await BarcodeDetector.getSupportedFormats();
+      const quero = ['ean_13','ean_8','upc_a','upc_e','code_128','itf'].filter(f=>tem.includes(f));
+      if(quero.includes('ean_13')) scan.det = new BarcodeDetector({ formats:quero });
+    }catch(e){}
+  }
+  if(!scan.det && !scan.ler){ try{ await carregarZXing(); scan.ler = zxingLeitor(false); }catch(e){} }
+  const cv = document.createElement('canvas'), g = cv.getContext('2d',{willReadFrequently:true});
+  let ultimo=null, vezes=0;
+  const passo = async ()=>{
+    if(!scan.stream) return;
+    let cod = null;
+    try{
+      if(v.readyState >= 2 && v.videoWidth){
+        if(scan.det){ const r = await scan.det.detect(v); if(r.length) cod = r[0].rawValue; }
+        else if(scan.ler){
+          const vw=v.videoWidth, vh=v.videoHeight, cw=vw*.9, ch=vh*.5, k=Math.min(1, 1000/cw);
+          cv.width=Math.round(cw*k); cv.height=Math.round(ch*k);
+          g.drawImage(v,(vw-cw)/2,(vh-ch)/2,cw,ch,0,0,cv.width,cv.height);
+          cod = scan.ler(cv);
+        }
+      }
+    }catch(e){}
+    if(cod && scan.stream){
+      const num = cod.replace(/\D/g,'');
+      const valido = !num || ![8,12,13,14].includes(num.length) || eanValido(num);
+      if(valido){
+        if(cod===ultimo) vezes++; else { ultimo=cod; vezes=1; }
+        if(vezes >= (scan.det ? 1 : 2)){ bip(); fecharScanner(); abrirItem({ ean: num || cod }); return; }
+      }
+    }
+    scan.timer = setTimeout(passo, scan.det ? 90 : 40);
+  };
+  passo();
+}
+function fecharScanner(){
+  clearTimeout(scan.timer);
+  if(scan.stream){ scan.stream.getTracks().forEach(t=>t.stop()); scan.stream=null; }
+  $('#vid').srcObject = null; scan.luz=false; $('#scLuz').classList.remove('on');
+  $('#scan').classList.remove('open');
+}
+$('#btnScan').onclick = abrirScanner;
+$('#scX').onclick = fecharScanner;
+$('#scDig').onclick = ()=>{ fecharScanner(); abrirDigitar(); };
+$('#scLuz').onclick = ()=>{
+  const t = scan.stream && scan.stream.getVideoTracks()[0]; if(!t) return;
+  scan.luz = !scan.luz; $('#scLuz').classList.toggle('on', scan.luz);
+  t.applyConstraints({ advanced:[{ torch:scan.luz }] }).catch(()=>{});
+};
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && scan.stream) fecharScanner(); });
+window.addEventListener('popstate', ()=>{ if(scan.stream) fecharScanner(); else if(sheetAberta()) fecharSheet(); });
+
+async function tratarFoto(e){
+  const f = e.target.files && e.target.files[0]; e.target.value=''; if(!f) return;
+  $('#busy').classList.add('open');
+  let cod=null, falhaLib=false;
+  try{ cod = await lerCodigo(f); }catch(err){ falhaLib=true; }
+  $('#busy').classList.remove('open');
+  if(cod){ if(navigator.vibrate) try{navigator.vibrate(60)}catch(e){} abrirItem({ ean: cod.replace(/\D/g,'') || cod }); }
+  else {
+    abrirSheet(`<h2>Não consegui ler o código</h2>
+    <p style="color:var(--muted);margin:6px 0 0">${falhaLib?'O leitor não carregou (verifique a internet).':'Dicas: aproxime até o código ocupar boa parte da foto, deixe-o reto e evite reflexo da luz.'} Você também pode digitar os números que ficam embaixo das barras.</p>
+    <div class="row"><button class="btn ghost" id="eDig">Digitar número</button><label class="btn green fileb">Tirar outra foto<input type="file" accept="image/*" class="fileover" id="foto2"></label></div>`);
+    $('#eDig').onclick=()=>abrirDigitar(); $('#foto2').addEventListener('change', e=>{ fecharSheet(); tratarFoto(e); });
+  }
+}
+$('#foto').addEventListener('change', tratarFoto);
+function abrirDigitar(){
+  abrirSheet(`<h2>Digitar código de barras</h2><div class="code">Os números que ficam embaixo das barras</div>
+    <div class="field"><input id="dCod" class="money" inputmode="numeric" autocomplete="off" placeholder="7891234567890"></div>
+    <div id="dAviso"></div>
+    <div class="row"><button class="btn ghost" id="dNo">Cancelar</button><button class="btn green" id="dOk">Continuar</button></div>`);
+  setTimeout(()=>$('#dCod')?.focus(),250);
+  let avisado=false;
+  $('#dCod').addEventListener('input', ()=>{ avisado=false; $('#dAviso').innerHTML=''; });
+  $('#dNo').onclick=fecharSheet;
+  $('#dOk').onclick=()=>{
+    const c=$('#dCod').value.replace(/\D/g,'');
+    if(c.length<6){ toast('Código muito curto'); return; }
+    if(!eanValido(c) && !avisado){ avisado=true; $('#dAviso').innerHTML='<div class="note">Esse número parece ter um dígito errado. Confira e toque em Continuar de novo se estiver certo.</div>'; return; }
+    abrirItem({ ean:c });
+  };
+}
+$('#btnDigitar').onclick = abrirDigitar;
+$('#btnManual').onclick = ()=> abrirItem({});
+
+/* ---------- conferência com o cupom ---------- */
+$('#btnConferir').onclick = ()=>{
+  const total = S.itens.reduce((s,it)=>s+subtotal(it),0);
+  const conferidos = S.itens.filter(i=>i.ok).length;
+  let cupom = 0;
+  abrirSheet(`<h2>Conferir com o cupom</h2>
+    <div class="kv"><span>Total pela gôndola</span><span>${fmt(total)}</span></div>
+    <div class="kv"><span>Itens conferidos</span><span>${conferidos} de ${S.itens.length}</span></div>
+    <div class="field"><label for="cCupom">Total cobrado no caixa (cupom)</label><input id="cCupom" class="money" inputmode="numeric" placeholder="R$ 0,00"></div>
+    <div id="cRes"></div>
+    <div class="row"><button class="btn ghost" id="cVoltar">Voltar</button><button class="btn green" id="cFim">Finalizar compra</button></div>`);
+  const res = ()=>{
+    if(!cupom){ $('#cRes').innerHTML=''; return; }
+    const d = cupom - total;
+    $('#cRes').innerHTML = d===0
+      ? `<div class="diff ok">Bateu certinho!<span class="big">${fmt(cupom)}</span></div>`
+      : `<div class="diff bad">${d>0?'O caixa cobrou a mais':'O caixa cobrou a menos'}<span class="big">${fmt(Math.abs(d))}</span></div>
+         <p class="hint">Volte para a lista e marque item por item comparando com o cupom. O que não bater é a diferença — mostre o preço da gôndola no caixa.</p>`;
+  };
+  mascaraDinheiro($('#cCupom'), ()=>cupom, c=>{ cupom=c; res(); });
+  $('#cVoltar').onclick = fecharSheet;
+  $('#cFim').onclick = async ()=>{
+    const ok = await confirmar('Finalizar compra?', 'A compra vai para o histórico e a lista fica vazia para a próxima vez.', 'Finalizar');
+    if(!ok) return;
+    S.historico.unshift({ id:uid(), data:new Date().toISOString(), total, cupom:cupom||null,
+      itens:S.itens.map(i=>({nome:i.nome,qtd:i.qtd,unidade:i.unidade,preco:i.preco})) });
+    S.historico = S.historico.slice(0,40); S.itens = [];
+    persist('estado'); render(); toast('Compra salva no histórico');
+  };
+};
+
+/* ---------- histórico ---------- */
+$('#btnHistorico').onclick = ()=>{
+  const h = S.historico;
+  abrirSheet(`<h2>Histórico de compras</h2>
+    ${h.length ? h.map(c=>{
+      const d = c.cupom!=null ? c.cupom - c.total : null;
+      const dt = new Date(c.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+      return `<details class="hist"><summary>
+        <div><div style="font-weight:700">${esc(dt)}</div><div class="sub">${c.itens.length} itens · ${fmt(c.total)}</div></div>
+        <div style="align-self:center">${d===null?'':d===0?'<span class="tag ok">bateu</span>':`<span class="tag bad">${d>0?'+':'−'}${fmt(Math.abs(d))}</span>`}</div>
+      </summary><div class="lines">${c.itens.map(i=>`<div><span>${esc(i.nome)} · ${i.unidade==='kg'?fmtKg(i.qtd):i.qtd+'x'}</span><span>${fmt(Math.round(i.preco*i.qtd))}</span></div>`).join('')}
+      ${c.cupom!=null?`<div><span><b>Cobrado no caixa</b></span><span><b>${fmt(c.cupom)}</b></span></div>`:''}</div></details>`;
+    }).join('') : '<p class="hint">Nenhuma compra finalizada ainda.</p>'}
+    <div class="row"><button class="btn ghost" id="hX">Fechar</button></div>`);
+  $('#hX').onclick=fecharSheet;
+};
+
+/* ---------- produtos salvos ---------- */
+$('#btnProdutos').onclick = ()=>{
+  const desenhar = ()=>{
+    const lst = Object.entries(C.produtos).filter(([,p])=>!p.apagado).sort((a,b)=>a[1].nome.localeCompare(b[1].nome,'pt-BR'));
+    abrirSheet(`<h2>Produtos salvos</h2><div class="code">${lst.length} produtos que o app já reconhece pelo código</div>
+      <div style="margin-top:8px">${lst.length ? lst.map(([k,p])=>`<div class="prod"><div class="info"><div class="nm">${esc(p.nome)}</div>
+        <div class="sub">${k.startsWith('b')?'Etiqueta de balança':esc(k)}${p.preco?' · último preço '+fmt(p.preco)+(p.unidade==='kg'?'/kg':''):''}</div></div>
+        <button class="iconbtn" data-k="${esc(k)}" aria-label="Apagar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>`).join('')
+        : '<p class="hint">Quando você escanear produtos, eles aparecem aqui.</p>'}</div>
+      <div class="row"><button class="btn ghost" id="pX">Fechar</button></div>`);
+    $('#pX').onclick=fecharSheet;
+    document.querySelectorAll('[data-k]').forEach(b=> b.onclick=()=>{
+      const k=b.dataset.k; C.produtos[k]={ nome:C.produtos[k].nome, apagado:true, visto:Date.now() };
+      persist('catalogo'); desenhar(); toast('Produto apagado');
+    });
+  };
+  desenhar();
+};
+
+/* ---------- instalação e modo offline ---------- */
+let pedidoInstalar = null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); pedidoInstalar=e; $('#instalar').hidden=false; });
+window.addEventListener('appinstalled', ()=>{ $('#instalar').hidden=true; toast('App instalado! Procure o ícone na tela inicial.'); });
+$('#btnInstalar').onclick = async ()=>{
+  if(!pedidoInstalar) return;
+  pedidoInstalar.prompt(); try{ await pedidoInstalar.userChoice; }catch(e){}
+  pedidoInstalar=null; $('#instalar').hidden=true;
+};
+if('serviceWorker' in navigator){ window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+
+render();
+</script>
+</body>
+</html>
