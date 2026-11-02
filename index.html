@@ -378,14 +378,51 @@ const FONTES = {
     return nome ? { nome: titulo(nome), foto: pega(o,['thumbnail']), fonte:'Cosmos' } : null;
   },
 };
+const LOJAS = /\b(carrefour|extra|p[aã]o de a[cç][uú]car|atacad[aã]o|assa[ií]|mercado ?livre|amazon|magalu|magazine luiza|americanas|shopee|submarino|casas bahia|drogasil|drogaria|droga raia|ifood|rappi|cosmos|bluesoft|google|youtube|facebook|instagram|wikipedia|tenda|sonda|zaffari|savegnago|st marche|dia|big|nacional|condor|muffato|angeloni|giassi|hiper|supermercados?|loja|oficial|site|mercad[ãa]o)\b/i;
+function limpaTitulo(t, ean){
+  if(!t) return '';
+  let x = t.replace(new RegExp(ean,'g'),' ').replace(/\b(ean|gtin|c[oó]d(igo)?( de barras)?|comprar|compre|pre[cç]o|ofertas?|promo[cç][aã]o|frete gr[aá]tis|em at[eé].*$)\b:?/gi,' ');
+  const partes = x.split(/\s+[|–—]\s+|\s+-\s+|\s+::\s+/).map(p=>p.replace(/\s+/g,' ').replace(/^[\s:,.\-]+|[\s:,.\-]+$/g,'').trim()).filter(Boolean);
+  const boas = partes.filter(p => p.length >= 6 && /[a-zà-ú]/i.test(p) && !(LOJAS.test(p) && p.split(' ').length <= 3) && !/^\.\.\.$/.test(p));
+  return boas[0] || '';
+}
+async function serper(endpoint, q){
+  const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), 8000);
+  try{
+    const r = await fetch('https://google.serper.dev/'+endpoint, { method:'POST', signal:ctl.signal,
+      headers:{ 'X-API-KEY':CFG.serper, 'Content-Type':'application/json' },
+      body: JSON.stringify({ q, gl:'br', hl:'pt-br', num:10 }) });
+    if(r.status===401 || r.status===403) throw { chave:'serper' };
+    if(!r.ok) return null; return await r.json();
+  } finally { clearTimeout(t); }
+}
+FONTES.google = async ean => {
+  if(!CFG.serper) return null;
+  const [web, img] = await Promise.all([ serper('search', ean), serper('images', ean).catch(()=>null) ]);
+  if(!web) return null;
+  const titulos = [];
+  if(web.knowledgeGraph && web.knowledgeGraph.title) titulos.push(web.knowledgeGraph.title);
+  (web.shopping||[]).forEach(o=>titulos.push(o.title));
+  (web.organic||[]).forEach(o=>titulos.push(o.title));
+  let nome = '';
+  for(const t of titulos){ nome = limpaTitulo(t, ean); if(nome) break; }
+  if(!nome) return null;
+  const im = img && (img.images||[]).find(i=>i.thumbnailUrl || i.imageUrl);
+  return { nome: titulo(nome), foto: im ? (im.thumbnailUrl || im.imageUrl) : '', fonte:'Google' };
+};
 async function buscarProduto(ean){
   if(!ean || ehBalanca(ean) || !navigator.onLine) return { achou:null, erros:[] };
   const erros = [];
-  for(const f of ['si5','off','cosmos']){
-    try{ const r = await FONTES[f](ean); if(r) return { achou:r, erros }; }
+  let parcial = null;
+  for(const f of ['si5','off','cosmos','google']){
+    try{
+      const r = await FONTES[f](ean);
+      if(r && r.foto) return { achou: parcial ? { ...parcial, foto:r.foto } : r, erros };
+      if(r && !parcial) parcial = r;     // achou nome sem foto: continua procurando a foto
+    }
     catch(e){ erros.push(e && e.chave ? 'chave:'+e.chave : 'rede:'+f); }
   }
-  return { achou:null, erros };
+  return { achou:parcial, erros };
 }
 
 /* ---------- item (adicionar / editar) ---------- */
@@ -474,8 +511,8 @@ function abrirItem({ ean=null, editar=null }){
         $('#fBusca').innerHTML = `<div class="buscando">Encontrado (${esc(achou.fonte)}) — corrija o nome se quiser</div>`;
       } else {
         const chave = erros.some(x=>x.startsWith('chave:')), redeSi5 = erros.includes('rede:si5');
-        const semSi5 = !CFG.si5 ? ' (dica: cadastre a chave do SI5 na engrenagem ⚙)' : '';
-        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave do SI5 recusada — confira na engrenagem ⚙':redeSi5?'O SI5 não respondeu — digite o nome uma vez':'Não encontrei nas bases — use Pesquisar no Google e copie o nome'+semSi5}</div>`;
+        const semSi5 = !CFG.serper ? ' (dica: ative a busca no Google na engrenagem ⚙)' : '';
+        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Uma chave foi recusada — confira na engrenagem ⚙':redeSi5?'O SI5 não respondeu — digite o nome uma vez':'Não encontrei nas bases — use Pesquisar no Google e copie o nome'+semSi5}</div>`;
         if(!it.nome) $('#fNome').focus();
       }
     });
@@ -699,26 +736,31 @@ $('#btnConferir').onclick = ()=>{
 /* ---------- configurações (chaves das bases de produtos) ---------- */
 $('#btnConfig').onclick = ()=>{
   abrirSheet(`<h2>Busca automática de produtos</h2>
-    <p style="color:var(--muted);margin:6px 0 0;font-size:14px">O app procura nome e foto pelo código de barras. A base <b>Open Food Facts</b> já funciona sem cadastro, mas tem menos produtos brasileiros. Para achar muito mais produtos, cadastre uma chave gratuita do <b>SI5 Global</b>.</p>
+    <p style="color:var(--muted);margin:6px 0 0;font-size:14px">O app procura nome e foto pelo código de barras. A base <b>Open Food Facts</b> já funciona sem cadastro, mas só tem alimentos. Para achar praticamente tudo, ative a <b>busca no Google</b> (mais abaixo). O <b>SI5 Global</b> é opcional.</p>
     <div class="note info" style="margin-top:12px"><b>Como pegar a chave do SI5 (grátis, 100 consultas por dia):</b><br>
       1. Abra <a href="https://global.si5.com.br/login" target="_blank" rel="noopener" style="color:inherit"><b>global.si5.com.br/login</b></a> e entre com sua conta Google.<br>
       2. Vá em <b>Minha conta</b> e gere um <b>token</b>.<br>
       3. Copie o token e cole aqui embaixo.</div>
     <div class="field"><label for="cSi5">Chave do SI5 Global</label><input id="cSi5" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cole o token aqui" value="${esc(CFG.si5||'')}"></div>
+    <div class="note info" style="margin-top:14px"><b>Busca no Google (Serper — 2.500 consultas grátis):</b><br>
+      1. Abra <a href="https://serper.dev/signup" target="_blank" rel="noopener" style="color:inherit"><b>serper.dev/signup</b></a> e entre com sua conta Google.<br>
+      2. No painel, toque em <b>API Key</b> e copie a chave.<br>
+      3. Cole aqui embaixo. Cada produto novo gasta 2 consultas, e só na primeira vez.</div>
+    <div class="field"><label for="cSerper">Chave do Serper (busca no Google)</label><input id="cSerper" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cole a chave aqui" value="${esc(CFG.serper||'')}"></div>
     <div class="field"><label for="cCosmos">Chave do Cosmos/Bluesoft (opcional)</label><input id="cCosmos" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="opcional" value="${esc(CFG.cosmos||'')}"></div>
     <div class="field"><label for="cTeste">Testar com um código</label><input id="cTeste" inputmode="numeric" placeholder="7891000100103" value="7891021001946"></div>
     <div id="cRes"></div>
     <div class="row"><button class="btn ghost" id="cTestar">Testar</button><button class="btn green" id="cSalvar">Salvar</button></div>`);
-  const ler = ()=>{ CFG.si5 = $('#cSi5').value.trim(); CFG.cosmos = $('#cCosmos').value.trim(); salvarCfg(); };
+  const ler = ()=>{ CFG.si5 = $('#cSi5').value.trim(); CFG.cosmos = $('#cCosmos').value.trim(); CFG.serper = $('#cSerper').value.trim(); salvarCfg(); };
   $('#cSalvar').onclick = ()=>{ ler(); fecharSheet(); toast('Configurações salvas'); };
   $('#cTestar').onclick = async ()=>{
     ler(); const ean = $('#cTeste').value.replace(/\D/g,'');
     $('#cRes').innerHTML = '<div class="buscando" style="margin-top:12px"><span class="mini"></span>Testando cada base…</div>';
     const linhas = [];
-    for(const [f,nomeF] of [['si5','SI5 Global'],['off','Open Food Facts'],['cosmos','Cosmos']]){
-      if((f==='si5'&&!CFG.si5)||(f==='cosmos'&&!CFG.cosmos)){ linhas.push(`<div class="kv"><span>${nomeF}</span><span style="font-family:inherit;color:var(--muted)">sem chave</span></div>`); continue; }
+    for(const [f,nomeF] of [['si5','SI5 Global'],['off','Open Food Facts'],['cosmos','Cosmos'],['google','Google (Serper)']]){
+      if((f==='si5'&&!CFG.si5)||(f==='cosmos'&&!CFG.cosmos)||(f==='google'&&!CFG.serper)){ linhas.push(`<div class="kv"><span>${nomeF}</span><span style="font-family:inherit;color:var(--muted)">sem chave</span></div>`); continue; }
       let txt;
-      try{ const r = await FONTES[f](ean); txt = r ? '✓ '+esc(r.nome) : 'não encontrou este código'; }
+      try{ const r = await FONTES[f](ean); txt = r ? '✓ '+esc(r.nome)+(r.foto?' (com foto)':'') : 'não encontrou este código'; }
       catch(e){ txt = e && e.chave ? '✗ chave recusada' : '✗ não respondeu'; }
       linhas.push(`<div class="kv"><span>${nomeF}</span><span style="font-family:inherit;text-align:right;max-width:60%">${txt}</span></div>`);
     }
