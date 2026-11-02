@@ -78,7 +78,7 @@
   .item.ok .check svg{opacity:1;color:var(--card)}
   .item.ok .nm{color:var(--muted)}
   .info{flex:1;min-width:0}
-  .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nm{font-weight:700;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
   .sub{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:2px}
   .amt{font-family:var(--mono);font-weight:700;white-space:nowrap}
   .empty{text-align:center;padding:36px 20px;color:var(--muted)}
@@ -135,6 +135,14 @@
   .prod{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
   .prod .info .sub{font-size:12px}
 
+  /* fotos */
+  .thumb{width:44px;height:44px;border-radius:10px;background:#fff;object-fit:contain;flex:none;border:1px solid var(--line)}
+  .prodhead{display:flex;gap:14px;align-items:center}
+  .prodhead .foto{width:84px;height:84px;border-radius:14px;background:#fff;object-fit:contain;flex:none;border:1px solid var(--line)}
+  .prodhead .foto.vazia{display:grid;place-items:center;color:var(--muted);background:var(--chip)}
+  .buscando{font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
+  .mini{width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:r .8s linear infinite}
+
   /* scanner ao vivo */
   .scan{position:fixed;inset:0;z-index:25;background:#000;display:none}
   .scan.open{display:block}
@@ -172,6 +180,9 @@
       <div class="menu">
         <button class="iconbtn" id="btnProdutos" aria-label="Produtos salvos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        </button>
+        <button class="iconbtn" id="btnConfig" aria-label="Configurações">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
         </button>
         <button class="iconbtn" id="btnHistorico" aria-label="Histórico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
@@ -266,7 +277,8 @@ function chaveCat(ean){ return ean ? (ehBalanca(ean) ? 'b'+ean.slice(1,6) : ean)
 function doCatalogo(ean){ const k=chaveCat(ean); const p=k && C.produtos[k]; return p && !p.apagado ? p : null; }
 function salvarNoCatalogo(it){
   const k=chaveCat(it.ean); if(!k) return;
-  const p = { nome:it.nome, unidade:it.unidade, visto:Date.now() };
+  const p = { nome:it.nome, unidade:it.unidade, visto:Date.now(), buscado:true };
+  if(it.foto) p.foto = it.foto;
   if(!ehBalanca(it.ean)) p.preco = it.preco;
   C.produtos[k]=p; persist('catalogo');
 }
@@ -286,6 +298,7 @@ function render(){
   $('#lista').innerHTML = '<div class="list">' + S.itens.map(it => `
     <div class="item ${it.ok?'ok':''}" data-id="${it.id}">
       <button class="check" data-act="ok" aria-label="Conferido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button>
+      ${it.foto ? `<img class="thumb" src="${esc(it.foto)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
       <button class="info" data-act="edit" style="text-align:left">
         <div class="nm">${esc(it.nome)}</div>
         <div class="sub">${it.unidade==='kg' ? fmtKg(it.qtd)+' × '+fmt(it.preco)+'/kg' : it.qtd+' × '+fmt(it.preco)}</div>
@@ -321,6 +334,56 @@ function mascaraDinheiro(inp, get, set){
   });
 }
 
+/* ---------- busca automática de nome e foto ---------- */
+let CFG = (()=>{ try{ return JSON.parse(localStorage.getItem('confere_cfg'))||{}; }catch(e){ return {}; } })();
+const salvarCfg = ()=>{ try{ localStorage.setItem('confere_cfg', JSON.stringify(CFG)); }catch(e){} };
+async function getJSON(url, headers={}, ms=7000){
+  const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), ms);
+  try{ const r = await fetch(url, { headers, signal:ctl.signal }); if(!r.ok) return { status:r.status }; return { status:r.status, json: await r.json() }; }
+  finally{ clearTimeout(t); }
+}
+const limpa = v => (typeof v==='string' ? v.trim() : '');
+const pega = (o, ks) => { for(const k of ks){ const v = limpa(o && o[k]); if(v) return v; } return ''; };
+function montaNome(nome, marca, qtd){
+  let n = nome; const low = n.toLowerCase();
+  if(marca && !low.includes(marca.toLowerCase().split(',')[0].trim())) n += ' ' + marca.split(',')[0].trim();
+  if(qtd && !low.replace(/\s/g,'').includes(qtd.toLowerCase().replace(/\s/g,''))) n += ' ' + qtd;
+  return n;
+}
+const titulo = s => /[a-zà-ú]/.test(s) ? s : s.toLowerCase().replace(/(^|\s|\/)([a-zà-ú])/g,(m,a,b)=>a+b.toUpperCase());
+const FONTES = {
+  si5: async ean => {
+    if(!CFG.si5) return null;
+    const r = await getJSON('https://global.si5.com.br/api/produtos/'+ean, { Authorization:'Bearer '+CFG.si5, Accept:'application/json' });
+    if(r.status===401 || r.status===403) throw { chave:'si5' };
+    const o = r.json && (r.json.produto || r.json.data || r.json); if(!o) return null;
+    const nome = pega(o,['nome','descricao','nome_produto','description','produto','name']);
+    return nome ? { nome: titulo(montaNome(nome, pega(o,['marca','brand']), '')), foto: pega(o,['imagem_url','imagem','foto','thumbnail','image_url']), fonte:'SI5' } : null;
+  },
+  off: async ean => {
+    const r = await getJSON(`https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,generic_name_pt,brands,quantity,image_front_small_url,image_front_url,image_url`);
+    const o = r.json && r.json.status===1 && r.json.product; if(!o) return null;
+    const nome = pega(o,['product_name_pt','product_name','generic_name_pt']);
+    return nome ? { nome: montaNome(nome, limpa(o.brands), limpa(o.quantity)), foto: pega(o,['image_front_small_url','image_front_url','image_url']), fonte:'Open Food Facts' } : null;
+  },
+  cosmos: async ean => {
+    if(!CFG.cosmos) return null;
+    const r = await getJSON(`https://api.cosmos.bluesoft.com.br/gtins/${ean}.json`, { 'X-Cosmos-Token':CFG.cosmos, Accept:'application/json' });
+    if(r.status===401 || r.status===403) throw { chave:'cosmos' };
+    const o = r.json; const nome = pega(o,['description']);
+    return nome ? { nome: titulo(nome), foto: pega(o,['thumbnail']), fonte:'Cosmos' } : null;
+  },
+};
+async function buscarProduto(ean){
+  if(!ean || ehBalanca(ean) || !navigator.onLine) return { achou:null, erros:[] };
+  const erros = [];
+  for(const f of ['si5','off','cosmos']){
+    try{ const r = await FONTES[f](ean); if(r) return { achou:r, erros }; }
+    catch(e){ erros.push(e && e.chave ? e.chave : f); }
+  }
+  return { achou:null, erros };
+}
+
 /* ---------- item (adicionar / editar) ---------- */
 function abrirItem({ ean=null, editar=null }){
   let it, novo = !editar, aviso='';
@@ -330,18 +393,23 @@ function abrirItem({ ean=null, editar=null }){
     if(ja){ it = clone(ja); novo=false; if(it.unidade==='un'){ it.qtd += 1; aviso=`Este produto já estava na lista. Quantidade aumentada para ${it.qtd} — confirme abaixo.`; } else aviso='Este produto já está na lista. Ajuste o peso se precisar.'; }
     else{
       const cat = doCatalogo(ean);
-      it = { id:uid(), ean, nome:cat?.nome||'', preco:cat?.preco||0, qtd:1, unidade:cat?.unidade||'un', ok:false };
+      it = { id:uid(), ean, nome:cat?.nome||'', foto:cat?.foto||'', preco:cat?.preco||0, qtd:1, unidade:cat?.unidade||'un', ok:false };
       if(ean && ehBalanca(ean)){
         const v = parseInt(ean.slice(7,12),10);
         if(v>0){ it.preco=v; it.unidade='un'; it.qtd=1; aviso='Etiqueta de balança: o valor foi lido do próprio código. Confira com o valor impresso na etiqueta.'; }
       } else if(cat?.preco){ aviso = `Última vez você anotou ${fmt(cat.preco)}${cat.unidade==='kg'?'/kg':''}. Confira se o preço da gôndola mudou.`; }
-      if(ean && !ehBalanca(ean) && !cat) aviso = 'Produto novo: digite o nome uma vez e o app lembra nas próximas compras.';
     }
   }
   const original = !novo ? S.itens.find(x=>x.id===it.id) : null;
   abrirSheet(`
-    <h2>${novo?'Adicionar produto':'Editar produto'}</h2>
-    <div class="code">${it.ean ? 'Código ' + esc(it.ean) : 'Item sem código de barras'}</div>
+    <div class="prodhead">
+      <div id="fFotoBox">${it.foto ? `<img class="foto" src="${esc(it.foto)}" alt="" onerror="this.outerHTML='<div class=&quot;foto vazia&quot;>sem foto</div>'">` : (it.ean ? '<div class="foto vazia"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-8 7"/></svg></div>' : '')}</div>
+      <div style="min-width:0">
+        <h2>${novo?'Adicionar produto':'Editar produto'}</h2>
+        <div class="code">${it.ean ? 'Código ' + esc(it.ean) : 'Item sem código de barras'}</div>
+        <div id="fBusca"></div>
+      </div>
+    </div>
     ${aviso?`<div class="note ${aviso.startsWith('Última')||aviso.startsWith('Produto novo')?'info':''}">${esc(aviso)}</div>`:''}
     <div class="field"><label for="fNome">Nome do produto</label><input id="fNome" autocomplete="off" placeholder="Ex.: Arroz 5 kg" value="${esc(it.nome)}"></div>
     <div class="field"><label>Vendido por</label><div class="seg"><button data-u="un">Unidade</button><button data-u="kg">Quilo (kg)</button></div></div>
@@ -375,7 +443,25 @@ function abrirItem({ ean=null, editar=null }){
   mascaraDinheiro($('#fPreco'), ()=>it.preco, c=>{ it.preco=c; atualiza(); });
   $('#fNome').addEventListener('input', e=> it.nome=e.target.value);
   desenhaQtd(); atualiza();
-  if(!it.nome) setTimeout(()=>$('#fNome')?.focus(),250); else if(!it.preco) setTimeout(()=>$('#fPreco')?.focus(),250);
+  const precisaBuscar = novo && it.ean && !ehBalanca(it.ean) && (!it.nome || !it.foto) && !(doCatalogo(it.ean)||{}).buscado;
+  if(precisaBuscar){
+    $('#fBusca').innerHTML = '<div class="buscando"><span class="mini"></span>Buscando nome e foto…</div>';
+    if(!it.nome) $('#fNome').placeholder = 'Buscando…';
+    setTimeout(()=>$('#fPreco')?.focus(),250);
+    buscarProduto(it.ean).then(({achou, erros})=>{
+      if(!$('#fBusca')) return;           // sheet já fechada
+      $('#fNome').placeholder = 'Ex.: Arroz 5 kg';
+      if(achou){
+        if(!it.nome){ it.nome = achou.nome; $('#fNome').value = achou.nome; }
+        if(achou.foto && !it.foto){ it.foto = achou.foto; $('#fFotoBox').innerHTML = `<img class="foto" src="${esc(achou.foto)}" alt="" onerror="this.outerHTML='<div class=&quot;foto vazia&quot;>sem foto</div>'">`; }
+        $('#fBusca').innerHTML = `<div class="buscando">Encontrado (${esc(achou.fonte)}) — corrija o nome se quiser</div>`;
+      } else {
+        const chave = erros.includes('si5')||erros.includes('cosmos');
+        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave de consulta recusada — veja Configurações':'Não encontrei nas bases — digite o nome uma vez'}</div>`;
+        if(!it.nome) $('#fNome').focus();
+      }
+    });
+  } else if(!it.nome) setTimeout(()=>$('#fNome')?.focus(),250); else if(!it.preco) setTimeout(()=>$('#fPreco')?.focus(),250);
 
   $('#fOk').onclick = ()=>{
     it.nome = it.nome.trim();
@@ -592,6 +678,36 @@ $('#btnConferir').onclick = ()=>{
   };
 };
 
+/* ---------- configurações (chaves das bases de produtos) ---------- */
+$('#btnConfig').onclick = ()=>{
+  abrirSheet(`<h2>Busca automática de produtos</h2>
+    <p style="color:var(--muted);margin:6px 0 0;font-size:14px">O app procura nome e foto pelo código de barras. A base <b>Open Food Facts</b> já funciona sem cadastro, mas tem menos produtos brasileiros. Para achar muito mais produtos, cadastre uma chave gratuita do <b>SI5 Global</b>.</p>
+    <div class="note info" style="margin-top:12px"><b>Como pegar a chave do SI5 (grátis, 100 consultas por dia):</b><br>
+      1. Abra <a href="https://global.si5.com.br/login" target="_blank" rel="noopener" style="color:inherit"><b>global.si5.com.br/login</b></a> e entre com sua conta Google.<br>
+      2. Vá em <b>Minha conta</b> e gere um <b>token</b>.<br>
+      3. Copie o token e cole aqui embaixo.</div>
+    <div class="field"><label for="cSi5">Chave do SI5 Global</label><input id="cSi5" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cole o token aqui" value="${esc(CFG.si5||'')}"></div>
+    <div class="field"><label for="cCosmos">Chave do Cosmos/Bluesoft (opcional)</label><input id="cCosmos" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="opcional" value="${esc(CFG.cosmos||'')}"></div>
+    <div class="field"><label for="cTeste">Testar com um código</label><input id="cTeste" inputmode="numeric" placeholder="7891000100103" value="7891000100103"></div>
+    <div id="cRes"></div>
+    <div class="row"><button class="btn ghost" id="cTestar">Testar</button><button class="btn green" id="cSalvar">Salvar</button></div>`);
+  const ler = ()=>{ CFG.si5 = $('#cSi5').value.trim(); CFG.cosmos = $('#cCosmos').value.trim(); salvarCfg(); };
+  $('#cSalvar').onclick = ()=>{ ler(); fecharSheet(); toast('Configurações salvas'); };
+  $('#cTestar').onclick = async ()=>{
+    ler(); const ean = $('#cTeste').value.replace(/\D/g,'');
+    $('#cRes').innerHTML = '<div class="buscando" style="margin-top:12px"><span class="mini"></span>Testando cada base…</div>';
+    const linhas = [];
+    for(const [f,nomeF] of [['si5','SI5 Global'],['off','Open Food Facts'],['cosmos','Cosmos']]){
+      if((f==='si5'&&!CFG.si5)||(f==='cosmos'&&!CFG.cosmos)){ linhas.push(`<div class="kv"><span>${nomeF}</span><span style="font-family:inherit;color:var(--muted)">sem chave</span></div>`); continue; }
+      let txt;
+      try{ const r = await FONTES[f](ean); txt = r ? '✓ '+esc(r.nome) : 'não encontrou este código'; }
+      catch(e){ txt = e && e.chave ? '✗ chave recusada' : '✗ não respondeu'; }
+      linhas.push(`<div class="kv"><span>${nomeF}</span><span style="font-family:inherit;text-align:right;max-width:60%">${txt}</span></div>`);
+    }
+    $('#cRes').innerHTML = '<div style="margin-top:12px">'+linhas.join('')+'</div>';
+  };
+};
+
 /* ---------- histórico ---------- */
 $('#btnHistorico').onclick = ()=>{
   const h = S.historico;
@@ -614,7 +730,7 @@ $('#btnProdutos').onclick = ()=>{
   const desenhar = ()=>{
     const lst = Object.entries(C.produtos).filter(([,p])=>!p.apagado).sort((a,b)=>a[1].nome.localeCompare(b[1].nome,'pt-BR'));
     abrirSheet(`<h2>Produtos salvos</h2><div class="code">${lst.length} produtos que o app já reconhece pelo código</div>
-      <div style="margin-top:8px">${lst.length ? lst.map(([k,p])=>`<div class="prod"><div class="info"><div class="nm">${esc(p.nome)}</div>
+      <div style="margin-top:8px">${lst.length ? lst.map(([k,p])=>`<div class="prod">${p.foto?`<img class="thumb" src="${esc(p.foto)}" alt="" loading="lazy" onerror="this.remove()">`:''}<div class="info"><div class="nm">${esc(p.nome)}</div>
         <div class="sub">${k.startsWith('b')?'Etiqueta de balança':esc(k)}${p.preco?' · último preço '+fmt(p.preco)+(p.unidade==='kg'?'/kg':''):''}</div></div>
         <button class="iconbtn" data-k="${esc(k)}" aria-label="Apagar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>`).join('')
         : '<p class="hint">Quando você escanear produtos, eles aparecem aqui.</p>'}</div>
