@@ -379,7 +379,7 @@ async function buscarProduto(ean){
   const erros = [];
   for(const f of ['si5','off','cosmos']){
     try{ const r = await FONTES[f](ean); if(r) return { achou:r, erros }; }
-    catch(e){ erros.push(e && e.chave ? e.chave : f); }
+    catch(e){ erros.push(e && e.chave ? 'chave:'+e.chave : 'rede:'+f); }
   }
   return { achou:null, erros };
 }
@@ -456,8 +456,9 @@ function abrirItem({ ean=null, editar=null }){
         if(achou.foto && !it.foto){ it.foto = achou.foto; $('#fFotoBox').innerHTML = `<img class="foto" src="${esc(achou.foto)}" alt="" onerror="this.outerHTML='<div class=&quot;foto vazia&quot;>sem foto</div>'">`; }
         $('#fBusca').innerHTML = `<div class="buscando">Encontrado (${esc(achou.fonte)}) — corrija o nome se quiser</div>`;
       } else {
-        const chave = erros.includes('si5')||erros.includes('cosmos');
-        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave de consulta recusada — veja Configurações':'Não encontrei nas bases — digite o nome uma vez'}</div>`;
+        const chave = erros.some(x=>x.startsWith('chave:')), redeSi5 = erros.includes('rede:si5');
+        const semSi5 = !CFG.si5 ? ' (dica: cadastre a chave do SI5 na engrenagem ⚙)' : '';
+        $('#fBusca').innerHTML = `<div class="buscando">${!navigator.onLine?'Sem internet — digite o nome':chave?'Chave do SI5 recusada — confira na engrenagem ⚙':redeSi5?'O SI5 não respondeu — digite o nome uma vez':'Não encontrei nas bases — digite o nome uma vez'+semSi5}</div>`;
         if(!it.nome) $('#fNome').focus();
       }
     });
@@ -688,7 +689,7 @@ $('#btnConfig').onclick = ()=>{
       3. Copie o token e cole aqui embaixo.</div>
     <div class="field"><label for="cSi5">Chave do SI5 Global</label><input id="cSi5" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cole o token aqui" value="${esc(CFG.si5||'')}"></div>
     <div class="field"><label for="cCosmos">Chave do Cosmos/Bluesoft (opcional)</label><input id="cCosmos" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="opcional" value="${esc(CFG.cosmos||'')}"></div>
-    <div class="field"><label for="cTeste">Testar com um código</label><input id="cTeste" inputmode="numeric" placeholder="7891000100103" value="7891000100103"></div>
+    <div class="field"><label for="cTeste">Testar com um código</label><input id="cTeste" inputmode="numeric" placeholder="7891000100103" value="7891021001946"></div>
     <div id="cRes"></div>
     <div class="row"><button class="btn ghost" id="cTestar">Testar</button><button class="btn green" id="cSalvar">Salvar</button></div>`);
   const ler = ()=>{ CFG.si5 = $('#cSi5').value.trim(); CFG.cosmos = $('#cCosmos').value.trim(); salvarCfg(); };
